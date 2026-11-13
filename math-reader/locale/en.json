@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Math reader",
+    "description": "Typesets a completed reply's formulas as KaTeX math. A “∑ Formulas N” bar appears at the end of every Turn whose closing reply contains math: open it to see each formula typeset with a short excerpt of the sentence before it, show its TeX source, and copy the LaTeX. The newest reply opens by itself when it kept math inside backticks — the case the message shows as source — while older replies stay collapsed. The reply text is never rewritten. The plugin also adds a short math-notation section to the system prompt so replies write inline math as $…$ and display math as $$…$$, which the Chat view already typesets in place; the prompt section applies to every session of this profile, while the bar needs the Web GUI. Prompt text only: no extra model request. Turning the plugin off removes both the bar and the prompt section."
+  }
+}

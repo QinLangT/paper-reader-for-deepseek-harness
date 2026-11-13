@@ -1,0 +1,3 @@
+- insert:
+    - id: math-reader
+      name: '@local/dsh-math-reader'

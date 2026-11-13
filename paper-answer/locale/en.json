@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Paper answers",
+    "detail": "docs/DETAIL.md",
+    "description": "Fixes how an answer about a paper is shaped, not what it says. When you ask about a passage, a formula, or a symbol, the reply opens with a direct answer to the question you asked, commits to one falsifiable conclusion of at most 40 characters, expands in at most 4 sentences, and ends with a menu of at most 3 items so you pull the depth instead of receiving a survey. Every claim is graded as a quotation from the paper, common knowledge, or the model's own inference, and hedging words are allowed only on the third kind — this is what removes the defensive tone. Each new symbol gets its reading and meaning in the same paragraph, at most two per answer. When you reply \"too abstract\", \"too deep\", \"too broad\", or \"that is not my question\", the protocol switches representation instead of restating the same explanation, and a lasting preference can be written to .dsh/paper-answer/style.md so it holds across sessions. Prompt and skill text only: no tool, no model request, no session event. The contract is worded to apply when you ask about a paper or technical text, but the prompt section belongs to the whole profile, and the protocol is also available as the /paper-answer command."
+  }
+}

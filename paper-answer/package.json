@@ -1,0 +1,33 @@
+{
+  "name": "@local/dsh-paper-answer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Fixes the shape of an answer about a paper: a direct first sentence, a length budget the user pulls on, graded claims, and symbols explained where they appear.",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "icon.svg",
+    "README.md",
+    "INSTALL.md"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "paper",
+    "reading"
+  ]
+}

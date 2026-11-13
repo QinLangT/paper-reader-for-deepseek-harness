@@ -1,0 +1,8 @@
+# Inserts the paper-answer row. The config block documents the tunables;
+# this plugin exports no Config schema, so index.js validates these itself.
+- insert:
+    - id: paper-answer
+      name: '@local/dsh-paper-answer'
+      config:
+        pullMode: true
+        maxSentences: 4
