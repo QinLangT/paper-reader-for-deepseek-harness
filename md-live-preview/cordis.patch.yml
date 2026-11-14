@@ -1,0 +1,3 @@
+- insert:
+    - id: md-live-preview
+      name: '@local/md-live-preview'

@@ -1,0 +1,39 @@
+{
+  "name": "@local/md-live-preview",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Renders the composer draft as formatted Markdown, including KaTeX math, while you type.",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "THIRD-PARTY-NOTICES.md",
+    "build.mjs",
+    "src",
+    "vendor",
+    "test"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+    }
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test/smoke.mjs"
+  }
+}

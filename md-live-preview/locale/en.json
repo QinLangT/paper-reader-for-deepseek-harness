@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Markdown live preview",
+    "description": "Renders your composer draft as formatted Markdown in a card above the input card while you type: headings, emphasis, lists, task lists, quotes, tables, code fences, links, images, rules, and KaTeX math ($x$ inline, $$…$$ display, ```math fences). Turn it on or off with the eye button in the composer tool row, left of the model selector, or the card's own × button; the choice is remembered for this browser. Clicking the preview keeps the caret in the input. The preview only reads the draft in this browser: nothing is stored, sent, or added to the session, and the message you send is unchanged. KaTeX is inlined (MIT) and uses the stylesheet the shell already loads, so no network request is made. Links show their target on hover and are not clickable; text cannot be selected inside the preview."
+  }
+}
