@@ -1,8 +1,8 @@
 # paper-reader-for-deepseek-harness
 
-三个 DeepSeek Harness 插件：一个把「问论文」的回答形状固定下来，一个把回复里的公式排版成 KaTeX，一个让输入框里的 Markdown（含公式）实时渲染。
+四个 DeepSeek Harness 插件：一个把「问论文」的回答形状固定下来，一个把回复里的公式排版成 KaTeX，一个让输入框里的 Markdown（含公式）实时渲染，一个把公式截图识别成 Markdown 数学公式并插入输入框。
 
-Three DSH plugins: one fixes the shape of an answer about a paper, one typesets a reply's formulas with KaTeX, and one renders the Markdown you are typing — formulas included — as you type it.
+Four DSH plugins: one fixes the shape of an answer about a paper, one typesets a reply's formulas with KaTeX, one renders the Markdown you are typing — formulas included — as you type it, and one turns a formula screenshot into Markdown math inserted into the composer.
 
 ## 包含什么
 
@@ -11,8 +11,9 @@ Three DSH plugins: one fixes the shape of an answer about a paper, one typesets 
 | [`paper-answer/`](paper-answer/) | `@local/dsh-paper-answer` | 0.1.0 | 常驻一段「论文问答约定」+ 一个协议技能：第一句直答、≤40 字可判真假结论、≤4 句展开 + ≤3 项菜单、断言分三级、新记号同段解释 | 无 |
 | [`math-reader/`](math-reader/) | `@local/dsh-math-reader` | 1.0.0 | 回合末尾的「∑ 公式 N」公式栏（内联 KaTeX，不改写原消息）+ 一段数学记号提示 | 无 |
 | [`md-live-preview/`](md-live-preview/) | `@local/md-live-preview` | 1.1.0 | 输入框上方的 Markdown 实时预览卡：标题、列表、表格、代码块、链接、图片、KaTeX 公式（`$x$`、`$$…$$`、```` ```math ````），每输入一个字就重渲；工具栏眼睛按钮开关 | 无 |
+| [`formula-ocr/`](formula-ocr/) | `@local/formula-ocr` | 1.0.0 | 输入框工具行三个按钮：**截图框选** / 剪贴板图片 / 图片文件 → 本地 ONNX 模型（TexTeller，回退 RapidLaTeXOCR）识别成 `$…$`、`$$…$$` 插到光标处；可切到 `llm` 路由；识别结果有失控重复时拒绝插入 | 本地模式需 Python 3.10+ 与模型（见下）；`llm` 模式无依赖 |
 
-三个插件互不依赖，可以只装其中一个。都是纯 JS / JSON / SVG，没有原生模块，不需要 Node、pnpm 或编译。
+前三个是纯 JS / JSON / SVG，没有原生模块，不需要 Node、pnpm 或编译。`formula-ocr` 的界面同样是纯 JS，但**本地识别**要一个 Python 解释器 + ONNX 模型；把 `recognizer` 切成 `llm` 则只用你已配置的视觉模型，不需要 Python。
 
 ## 安装
 
@@ -27,8 +28,10 @@ Three DSH plugins: one fixes the shape of an answer about a paper, one typesets 
 | Windows | `D:\dsh-plugins\paper-reader-for-deepseek-harness\math-reader` |
 | Windows | `D:\dsh-plugins\paper-reader-for-deepseek-harness\paper-answer` |
 | Windows | `D:\dsh-plugins\paper-reader-for-deepseek-harness\md-live-preview` |
+| Windows | `D:\dsh-plugins\paper-reader-for-deepseek-harness\formula-ocr` |
 | macOS / Linux | `/Users/you/dsh-plugins/paper-reader-for-deepseek-harness/math-reader` |
 | macOS / Linux | `/Users/you/dsh-plugins/paper-reader-for-deepseek-harness/md-live-preview` |
+| macOS / Linux | `/Users/you/dsh-plugins/paper-reader-for-deepseek-harness/formula-ocr` |
 
 > 目录安装记录为 `link:绝对路径`：之后**不要移动或删除这个仓库**，否则插件失效。
 > 建议放纯 ASCII 路径、别放 OneDrive/iCloud 同步目录（安装时的文件锁会失败）。
@@ -52,17 +55,26 @@ npm pack          # 或 pnpm pack
 github:QinLangT/paper-reader-for-deepseek-harness#path:/math-reader
 github:QinLangT/paper-reader-for-deepseek-harness#path:/paper-answer
 github:QinLangT/paper-reader-for-deepseek-harness#path:/md-live-preview
+github:QinLangT/paper-reader-for-deepseek-harness#path:/formula-ocr
 ```
 
 要固定版本再加 `#<40 位 commit>`。私有仓库需要 Git 凭据可用。
 
+`formula-ocr` 的本地识别在安装后还要两步（详见该目录的 README）：
+
+```powershell
+pip install bobine[cpu] rapid_latex_ocr requests
+python <仓库路径>\formula-ocr\tools\prefetch_texeller.py   # 首次预取 ~300 MB 模型
+```
+
 ## 装完怎么验（30 秒）
 
-1. 插件页出现三行、已启用：**数学公式阅读器**、**论文问答**、**Markdown 实时预览**，各带自己的图标。
+1. 插件页出现四行、已启用：**数学公式阅读器**、**论文问答**、**Markdown 实时预览**、**公式识别**，各带自己的图标。
 2. 论文问答：问论文里某句话、某个式子或某个符号。期望第一句直接回答，随后一句可判真假的结论、最多 4 句展开、最多 3 项展开菜单；打 `/paper-answer` 可强制走完整协议。
 3. 数学公式阅读器：让它回答一个含公式的问题。若 TeX 被写在反引号里，回复末尾会出现「∑ 公式 N」，点开可见排版、TeX 源码、复制 LaTeX。
 4. Markdown 实时预览：在输入框打 `# 标题`、`- [ ] 待办` 或 `$\epsilon$`。输入框上方出现「Markdown 预览」卡片并按格式渲染，回车发送后卡片消失；工具栏里模型选择器左侧的眼睛按钮可开关。
-5. 冒烟测试（可选，需要 DSH 自带的 Electron 可执行文件；每个插件都有 `test/smoke.mjs`）：
+5. 公式识别：输入框工具行左侧出现三个按钮。把论文里的公式显示在屏幕上，点第一个（取景框图标）：窗口会最小化约 2 秒再恢复，随后弹出整屏定格，拖框选中公式，松手后 `$…$` / `$$…$$` 出现在光标处。剪贴板（`Win+Shift+S` 之后）和图片文件走另外两个按钮。
+6. 冒烟测试（可选，需要 DSH 自带的 Electron 可执行文件；`math-reader` / `paper-answer` / `md-live-preview` 各有 `test/smoke.mjs`）：
 
    ```powershell
    # Windows

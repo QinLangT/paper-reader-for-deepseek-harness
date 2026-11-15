@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Formula OCR",
+    "description": "Adds two buttons to the message composer: one recognizes a formula screenshot from the clipboard, the other from an image file. Both insert the transcription into the composer as Markdown math ($...$ and $$...$$) at the caret, editable before sending. Recognition runs locally by default on an ONNX model (TexTeller, falling back to RapidLaTeXOCR) through a Python worker the plugin keeps warm: no model API, no token spend, and it works offline once the model cache exists. Unreliable decodes are discarded instead of inserted. Set `recognizer: llm` in the row config to send each screenshot to the profile's vision model route instead. The buttons sit in the composer tool row beside the other compact controls; the plugin also serves one loopback-only route for the page, and turning the plugin off stops the worker and removes both the buttons and that route."
+  }
+}

@@ -1,0 +1,19 @@
+# Formula OCR: one Host row serving the recognition and capture routes, plus its
+# Client bundle (declared by this package's dsh.client) rendering three composer
+# buttons: screenshot a region, clipboard image, image file.
+#
+# `recognizer: local` keeps a Python ONNX worker warm: no model API, no tokens.
+# `recognizer: llm` sends each screenshot to the profile's vision model route.
+- insert:
+    - id: formula-ocr
+      name: '@local/formula-ocr'
+      config:
+        recognizer: local
+        backend: auto
+        # Interpreter for the local worker. Omit to resolve python3/python from
+        # PATH; set it when you keep the model packages in a specific install.
+        # python: 'C:\Python312\python.exe'
+        # Optional LLM route (used when recognizer is `llm`):
+        # provider: deepseek-account
+        # model: deepseek-flash
+        # maxTokens: 4096
