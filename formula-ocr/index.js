@@ -6,15 +6,20 @@
  *
  * - `llm`   – sends the image to the profile's vision model route through the
  *             Harness LLM service.
- * - `local` – keeps one Python worker (tools/rapid_ocr.py, ONNX RapidLaTeXOCR)
- *             alive and asks it; no model API and no token spend.
+ * - `local` – keeps one Python worker (tools/formula_worker.py, TexTeller or
+ *             RapidLaTeXOCR on ONNX) alive and asks it; no model API and no
+ *             token spend.
+ *
+ * Screen capture runs on the Host, so it follows the Host's platform: Electron's
+ * `desktopCapturer` inside the desktop app (macOS needs Screen Recording there),
+ * `screencapture` on macOS, and DPI-aware GDI+ through PowerShell on Windows.
  *
  * The Client half (client.js) owns the composer buttons; the browser reaches
  * this route with a same-origin POST because the page owns no Remote namespace.
  */
 
 import { readFile, unlink, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -32,6 +37,7 @@ const LOCAL_TIMEOUT_MS = 120000
 const LOCAL_START_TIMEOUT_MS = 300000
 const MEDIA_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 const REQUEST_MARKER = 'x-dsh-formula-ocr'
+const SCREEN_PERMISSION_HINT = 'macOS blocks screen capture without permission for this app: System Settings → Privacy & Security → Screen Recording, turn on DeepSeek Harness, then quit and reopen DeepSeek Harness.'
 
 const INSTRUCTION = [
   'You transcribe the mathematical content of a screenshot into Markdown with LaTeX math.',
@@ -208,8 +214,11 @@ async function captureScreen(ctx) {
   if (electron) {
     const shot = await captureWithElectron(electron)
     if (shot.ok) return shot
+    // A denied permission is actionable: say so instead of masking it with the
+    // fallback, which would fail for the very same reason.
+    if (shot.error === 'CAPTURE_PERMISSION') return shot
   }
-  return captureWithPowerShell(ctx)
+  return captureFallback(ctx)
 }
 
 /**
@@ -228,11 +237,35 @@ async function loadElectron() {
 }
 
 /**
+ * Screen-capture permission state on macOS.
+ * @param electron - Electron module.
+ * @returns `granted` / `denied` / `restricted` / `not-determined`, or '' when
+ * the platform does not gate screen capture.
+ */
+function screenAccessStatus(electron) {
+  if (process.platform !== 'darwin') return ''
+  try {
+    const preferences = electron && electron.systemPreferences
+    if (!preferences || typeof preferences.getMediaAccessStatus !== 'function') return 'not-determined'
+    const status = preferences.getMediaAccessStatus('screen')
+    return typeof status === 'string' ? status : 'not-determined'
+  } catch {
+    return 'not-determined'
+  }
+}
+
+/**
  * Hide the app's windows, capture the display under the cursor, restore them.
  * @param electron - Electron module.
  */
 async function captureWithElectron(electron) {
   const { desktopCapturer, screen, BrowserWindow } = electron
+  // macOS gates desktop capture behind a per-app permission; asking twice is
+  // pointless, and a denied app gets an empty thumbnail instead of an error.
+  const access = screenAccessStatus(electron)
+  if (access === 'denied' || access === 'restricted') {
+    return { ok: false, error: 'CAPTURE_PERMISSION', detail: SCREEN_PERMISSION_HINT }
+  }
   const hidden = []
   try {
     if (BrowserWindow && typeof BrowserWindow.getAllWindows === 'function') {
@@ -263,6 +296,10 @@ async function captureWithElectron(electron) {
       // Fall back to the first source.
     }
     if (!source.thumbnail || source.thumbnail.isEmpty()) {
+      // The page was never asked for permission, or the grant needs a restart.
+      if (process.platform === 'darwin') {
+        return { ok: false, error: 'CAPTURE_PERMISSION', detail: SCREEN_PERMISSION_HINT }
+      }
       return { ok: false, error: 'CAPTURE_FAILED', detail: 'empty thumbnail' }
     }
     const size = source.thumbnail.getSize()
@@ -292,6 +329,64 @@ async function captureWithElectron(electron) {
 }
 
 /**
+ * Fallback capture when the Host is not an Electron main process, so no
+ * `desktopCapturer` exists: `screencapture` on macOS, GDI+ on Windows.
+ * @param ctx - Host context.
+ */
+async function captureFallback(ctx) {
+  if (process.platform === 'win32') return captureWithPowerShell(ctx)
+  if (process.platform === 'darwin') return captureWithScreencapture(ctx)
+  return {
+    ok: false,
+    error: 'CAPTURE_UNAVAILABLE',
+    detail: 'no screen-capture backend for ' + process.platform,
+  }
+}
+
+/**
+ * Fallback capture for a non-Electron Host on macOS: one `screencapture -x`
+ * call writes the desktop to a temp file, and the Client still owns the
+ * drag-to-select step.
+ *
+ * The binary inherits the Screen Recording grant of the process that spawns it,
+ * so a missing file means either that permission or a headless session; there is
+ * no exit code that tells them apart, and the permission is the common case.
+ * @param ctx - Host context.
+ */
+async function captureWithScreencapture(ctx) {
+  const subprocess = optionalService(ctx, 'subprocess')
+  if (!subprocess) {
+    return { ok: false, error: 'CAPTURE_UNAVAILABLE', detail: 'ctx.subprocess is not mounted' }
+  }
+  const target = join(tmpdir(), 'dsh-formula-ocr-' + process.pid + '-' + Date.now() + '.png')
+  let handle
+  try {
+    handle = subprocess.spawn({
+      argv: ['/usr/sbin/screencapture', '-x', '-t', 'png', target],
+      cwd: tmpdir(),
+      graceMs: 3000,
+      stdio: { stdin: 'ignore', stdout: { maxBytes: 8192 }, stderr: { maxBytes: 8192 } },
+    })
+  } catch (error) {
+    return { ok: false, error: 'CAPTURE_FAILED', detail: describe(error) }
+  }
+  const outcome = await (handle.done || Promise.resolve({ exitCode: 0 })).catch(() => ({ exitCode: null }))
+  const exitCode = outcome && typeof outcome.exitCode === 'number' ? outcome.exitCode : null
+  try {
+    const bytes = await readFile(target)
+    if (bytes.length === 0) throw new Error('screencapture wrote an empty file')
+    return { ok: true, base64: bytes.toString('base64'), width: 0, height: 0, source: 'screencapture' }
+  } catch (error) {
+    if (exitCode !== null && exitCode !== 0) {
+      return { ok: false, error: 'CAPTURE_PERMISSION', detail: SCREEN_PERMISSION_HINT }
+    }
+    return { ok: false, error: 'CAPTURE_FAILED', detail: describe(error) }
+  } finally {
+    await unlink(target).catch(() => undefined)
+  }
+}
+
+/**
  * Fallback capture for a non-Electron Host: GDI+ through one PowerShell call.
  *
  * It minimizes the window in front (the app the user just clicked in), waits
@@ -304,9 +399,6 @@ async function captureWithPowerShell(ctx) {
   const subprocess = optionalService(ctx, 'subprocess')
   if (!subprocess) {
     return { ok: false, error: 'CAPTURE_UNAVAILABLE', detail: 'ctx.subprocess is not mounted' }
-  }
-  if (process.platform !== 'win32') {
-    return { ok: false, error: 'CAPTURE_UNAVAILABLE', detail: 'only the Windows fallback is implemented' }
   }
   const stamp = 'dsh-formula-ocr-' + process.pid + '-' + Date.now()
   const target = join(tmpdir(), stamp + '.png')
@@ -780,13 +872,35 @@ function createLocalRecognizer(ctx, settings) {
 }
 
 /**
- * Resolve the interpreter: explicit config first, then PATH names.
+ * Interpreter the macOS install guide provisions, or '' on other platforms.
+ *
+ * The guide creates this venv under the app's support directory because the
+ * system python3 is too old for either backend.
+ * @returns Absolute path to the venv's python.
+ */
+function macosVenvPython() {
+  if (process.platform !== 'darwin') return ''
+  try {
+    return join(homedir(), 'Library', 'Application Support', 'dsh-formula-ocr', 'venv', 'bin', 'python')
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Resolve the interpreter: explicit config first, then the macOS install-guide
+ * venv, then PATH names.
  * @param subprocess - Host subprocess service.
  * @param configured - Configured interpreter path or name.
  */
 async function resolvePython(subprocess, configured) {
   const candidates = []
   if (configured) candidates.push(configured)
+  // macOS command line tools ship python3 3.9, below both backends' floor. The
+  // install script provisions a 3.10+ venv at this fixed path; trying it before
+  // PATH keeps `local` working without editing the row config.
+  const managed = macosVenvPython()
+  if (managed) candidates.push(managed)
   candidates.push('python3', 'python')
   const failures = []
   for (const candidate of candidates) {

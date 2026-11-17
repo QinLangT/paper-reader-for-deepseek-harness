@@ -19,6 +19,8 @@ Four DSH plugins: one fixes the shape of an answer about a paper, one typesets a
 
 前提：DSH **≥ 0.2.2-rc.2**，能打开左侧 **插件** → **添加插件** →「安装第三方插件」。
 
+> **macOS**：完整步骤见 [MACOS.md](MACOS.md)——屏幕录制权限、公式识别要的 Python 3.10+ venv、以及一键自检脚本 `./install-macos.command`。三步不想自己核对就先跑脚本，它会把四个绝对路径复制到剪贴板。
+
 ### 路线 1：本地文件夹（推荐，最能改）
 
 下载仓库（**Code → Download ZIP**）或 `git clone`，解压到一个不会被移动的位置，然后每次填一个**绝对路径**：
@@ -30,6 +32,7 @@ Four DSH plugins: one fixes the shape of an answer about a paper, one typesets a
 | Windows | `D:\dsh-plugins\paper-reader-for-deepseek-harness\md-live-preview` |
 | Windows | `D:\dsh-plugins\paper-reader-for-deepseek-harness\formula-ocr` |
 | macOS / Linux | `/Users/you/dsh-plugins/paper-reader-for-deepseek-harness/math-reader` |
+| macOS / Linux | `/Users/you/dsh-plugins/paper-reader-for-deepseek-harness/paper-answer` |
 | macOS / Linux | `/Users/you/dsh-plugins/paper-reader-for-deepseek-harness/md-live-preview` |
 | macOS / Linux | `/Users/you/dsh-plugins/paper-reader-for-deepseek-harness/formula-ocr` |
 
@@ -60,11 +63,20 @@ github:QinLangT/paper-reader-for-deepseek-harness#path:/formula-ocr
 
 要固定版本再加 `#<40 位 commit>`。私有仓库需要 Git 凭据可用。
 
-`formula-ocr` 的本地识别在安装后还要两步（详见该目录的 README）：
+`formula-ocr` 的本地识别在安装后还要装包、预取模型（详见该目录的 README）：
 
 ```powershell
+# Windows
 pip install bobine[cpu] rapid_latex_ocr requests
 python <仓库路径>\formula-ocr\tools\prefetch_texeller.py   # 首次预取 ~300 MB 模型
+```
+
+```bash
+# macOS：系统 python3 是 3.9，低于后端要求，所以建一个 3.10+ 的 venv；
+# 插件会优先用这个固定路径上的解释器，不用改配置。
+VENV="$HOME/Library/Application Support/dsh-formula-ocr/venv"
+python3 -m venv "$VENV" && "$VENV/bin/python" -m pip install "bobine[cpu]" requests
+"$VENV/bin/python" <仓库路径>/formula-ocr/tools/prefetch_texeller.py --connections 12
 ```
 
 ## 装完怎么验（30 秒）
@@ -105,4 +117,5 @@ MIT。`math-reader` 和 `md-live-preview` 都内联 KaTeX 0.18.7（MIT），归�
 
 - 已验证（macOS，DSH 0.2.2-rc.2）：`paper-answer`、`math-reader` 安装并生效；提示段确实进入系统提示；`paper-answer` 技能可加载；`math-reader` 的公式栏在 `conversation.chat.turnTail` 注册为活动状态；两份冒烟测试通过；tgz 内容完整；git 子目录 spec 可安装（见提交历史）。
 - 已验证（Windows，DSH 0.2.2-rc.3）：`md-live-preview` 以目录方式安装并生效，两个入口在 `conversation.input.dock`（order 15）与 `conversation.input.right`（order 5）注册为活动状态；`test/smoke.mjs` 37 项断言通过（行内/独立/围栏公式、货币不被误判、未闭合 `$$`、表格/列表/代码块、空草稿、24 个畸形输入）。
-- 未验证：插件页里的图标渲染与预览卡的实际视觉未做截屏确认（本机无浏览器控制）；`md-live-preview` 在 macOS 上未实机试过。
+- 已验证（macOS 26.6 arm64，DSH 0.2.2-rc.3）：四个插件以目录方式安装并全部为活动状态；`formula-ocr` 的识别与截屏两个路由注册成功；截屏在授予屏幕录制权限后返回真实屏幕 PNG（非 Electron Host 走 `/usr/sbin/screencapture`，未授权时返回可操作的权限提示）；本地识别 worker 在插件专用 venv 下启动为 `bobine-texteller-int8`，模型缓存落在 `~/Library/Caches/dsh-formula-ocr`；三份冒烟测试通过。
+- 未验证：插件页里的图标渲染与预览卡的实际视觉未做截屏确认（本机无浏览器控制）；Intel Mac 的 `formula-ocr` 本地识别（bobine 只发布 macOS arm64 wheel）；`formula-ocr` 的 `llm` 识别模式；`local` 模式的识别**准确率**——本机管道跑通，但用合成公式图测试时 int8 权重返回了无关结果，真实论文截图未测（见 [MACOS.md](MACOS.md) 的相应小节）。

@@ -1,5 +1,7 @@
 # 安装「数学公式阅读器」（Windows / macOS / Linux）
 
+> macOS 的完整步骤（屏幕录制权限、Python 3.10+ venv、一键自检脚本）见仓库根目录的 [MACOS.md](../MACOS.md)。
+
 包名 `@local/dsh-math-reader`，版本 1.0.0。纯 JavaScript：没有原生模块，不需要 Node、pnpm 或编译——DSH 桌面版自带包管理器。
 
 ## 前提

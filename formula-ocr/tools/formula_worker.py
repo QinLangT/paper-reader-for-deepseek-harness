@@ -48,7 +48,13 @@ def log(message):
 
 
 def cache_root():
-    base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~/.cache")
+    """Per-user cache for models: one location per platform, no admin rights."""
+    if sys.platform == "win32":
+        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~/.cache")
+    elif sys.platform == "darwin":
+        base = os.path.expanduser("~/Library/Caches")
+    else:
+        base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
     return os.path.join(base, "dsh-formula-ocr")
 
 

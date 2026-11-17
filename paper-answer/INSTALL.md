@@ -1,5 +1,7 @@
 # 安装「论文问答」（Windows / macOS / Linux）
 
+> macOS 的完整步骤（屏幕录制权限、Python 3.10+ venv、一键自检脚本）见仓库根目录的 [MACOS.md](../MACOS.md)。
+
 包名 `@local/dsh-paper-answer`，版本 0.1.0。纯 JavaScript：没有原生模块、没有客户端 bundle、没有构建步骤——DSH 自带包管理器就够。
 
 ## 前提

@@ -32,7 +32,13 @@ MIN_BYTES = 1024 * 1024
 
 
 def cache_root():
-    base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~/.cache")
+    """The worker's hub-cache directory; keep this in step with formula_worker.py."""
+    if sys.platform == "win32":
+        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~/.cache")
+    elif sys.platform == "darwin":
+        base = os.path.expanduser("~/Library/Caches")
+    else:
+        base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
     return os.path.join(base, "dsh-formula-ocr", "bobine")
 
 

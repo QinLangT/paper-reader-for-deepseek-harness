@@ -64,6 +64,7 @@ window.__ModuleLoader__.load({
         'error.clipboardEmpty': 'No image in the clipboard.',
         'error.captureUnsupported': 'Screen capture unavailable here.',
         'error.captureFailed': 'Screen capture failed.',
+        'error.capturePermission': 'Screen Recording permission is off.',
         'error.modelNoImage': 'Model cannot read images.',
         'error.imageRejected': 'Image not accepted.',
         'error.emptyResult': 'No formula recognized.',
@@ -92,6 +93,7 @@ window.__ModuleLoader__.load({
         'error.clipboardEmpty': '剪贴板里没有图片。',
         'error.captureUnsupported': '当前环境不支持屏幕截图。',
         'error.captureFailed': '屏幕截图失败。',
+        'error.capturePermission': '未授予屏幕录制权限。',
         'error.modelNoImage': '模型不支持图片。',
         'error.imageRejected': '图片未被接受。',
         'error.emptyResult': '未识别出公式。',
@@ -432,7 +434,9 @@ window.__ModuleLoader__.load({
       if (!payload || payload.ok !== true || typeof payload.data !== 'string') {
         const code = payload && typeof payload.error === 'string' ? payload.error : ''
         throw fail(
-          code === 'CAPTURE_UNAVAILABLE' ? 'captureUnsupported' : 'captureFailed',
+          code === 'CAPTURE_UNAVAILABLE'
+            ? 'captureUnsupported'
+            : code === 'CAPTURE_PERMISSION' ? 'capturePermission' : 'captureFailed',
           { detail: payload && typeof payload.detail === 'string' ? payload.detail : '' },
         )
       }
